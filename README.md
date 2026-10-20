@@ -3,6 +3,42 @@
 Separate admin app for the existing Humour Project's shared Supabase database.
 This repository contains the initial database permission setup and admin login app.
 
+## The Pulse dashboard
+
+The protected home page shows live all-time counts for profiles, published memes
+(posts with a non-null caption, matching `home_feed`), and current votes split
+into up/down. The 7/30/90-day selector changes the daily chart and recent counts;
+all-time totals remain all-time. Today is included. Days use America/New_York,
+and inactive dates are filled with zeroes.
+
+Apply `supabase/003-admin-pulse.sql` as database owner to enable the dashboard.
+The function returns aggregates only, checks the current caller's superadmin
+flag inside the database, rejects guests/ordinary users, and restricts ranges to
+7/30/90 days. No table-level RLS policies or write permissions change.
+The app uses the existing user's token, with no service-role key. Requests still
+pass the existing Google login and admin checks. Statistics are fetched on each
+page request; Refresh data performs a fresh request.
+
+Chart series can be toggled, each day can be inspected with a mouse, keyboard or
+touch, and an expandable daily table provides the same numbers. A failed query
+shows an unavailable state, never fabricated zeroes or sample data.
+
+These are current-record statistics, not an event log: deleted records disappear,
+vote switches retain the original vote creation time, and edited captions use
+the original post creation time. User counts are profile counts, not a separate
+count of Auth accounts. Vote totals cover current `post_hearts` rows.
+
+`sh scripts/test-pulse.sh` validates the actual SQL in an isolated local PostgreSQL
+cluster: authorization, permission revocation, draft exclusion, day boundaries,
+empty data, allowed ranges and zero-filled dates. It never connects to Supabase.
+
+Applied and verified in the shared project on October 20, 2026. The live function
+returned 10 profiles, 34 published memes, 87 upvotes and 3 downvotes, plus 30
+daily buckets. A nonadmin call was rejected and the anonymous role has no EXECUTE
+privilege. Browser QA confirmed the seven-day filter, series toggle, daily
+inspection and daily table. Build, lint, TypeScript, auth tests, SQL tests and
+signed-out HTTP access checks passed. Deployment remains a separate step.
+
 ## Run the login app
 
 The Next.js app now includes Google sign-in, an access-denied screen, a protected
