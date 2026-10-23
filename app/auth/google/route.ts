@@ -3,8 +3,8 @@ import { appOrigin } from '@/lib/supabase/config';
 import { createClient } from '@/lib/supabase/server';
 
 export async function POST(request: Request) {
-  const origin = appOrigin();
-  if (request.headers.get('origin') !== origin) return new Response('Invalid origin', { status: 403 });
+  const origin = appOrigin(request);
+  if (!origin || request.headers.get('origin') !== origin) return new Response('Invalid origin', { status: 403 });
   const client = await createClient();
   const { data, error } = await client.auth.signInWithOAuth({
     provider: 'google',

@@ -5,7 +5,8 @@ import { checkAdmin } from '@/lib/auth/check';
 import { validUserId } from '@/lib/users/types';
 const headers = { 'Cache-Control': 'private, no-store' };
 export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
-  if (request.headers.get('origin') !== appOrigin()) return NextResponse.json({error:'Invalid origin'}, {status:403,headers});
+  const origin = appOrigin(request);
+  if (!origin || request.headers.get('origin') !== origin) return NextResponse.json({error:'Invalid origin'}, {status:403,headers});
   const client = await createClient();
   const access = await checkAdmin(client);
   if (access.status !== 'allowed') return NextResponse.json({error:'Superadmin access required'}, {status:access.status==='signed-out'?401:access.status==='denied'?403:503,headers});

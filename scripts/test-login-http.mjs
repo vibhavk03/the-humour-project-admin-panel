@@ -32,3 +32,15 @@ for (const [path, method, status] of checks) {
   }
   console.log(`${method} ${path}: ${status} OK`);
 }
+
+// Starting OAuth only creates a PKCE verifier; no Google login is completed.
+const start = await fetch(`${origin}/auth/google`, {
+  method: 'POST', redirect: 'manual', headers: { Origin: origin },
+});
+assert.equal(start.status, 303);
+const authorization = new URL(start.headers.get('location'));
+assert.equal(authorization.searchParams.get('redirect_to'), `${origin}/auth/callback`);
+console.log('Same-origin OAuth start: 303 with callback on the incoming origin OK');
+const missingOrigin = await fetch(`${origin}/auth/google`, { method: 'POST', redirect: 'manual' });
+assert.equal(missingOrigin.status, 403);
+console.log('POST /auth/google without Origin: 403 OK');

@@ -4,7 +4,8 @@ import { appOrigin } from '@/lib/supabase/config';
 import { checkAdmin } from '@/lib/auth/check';
 
 export async function GET(request: Request) {
-  const origin = appOrigin();
+  const origin = appOrigin(request);
+  if (!origin) return new Response('Invalid origin', { status: 403 });
   const code = new URL(request.url).searchParams.get('code');
   if (!code) return NextResponse.redirect(`${origin}/login?error=oauth`);
   const client = await createClient();

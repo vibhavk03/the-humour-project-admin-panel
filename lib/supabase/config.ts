@@ -1,3 +1,5 @@
+import { trustedRequestOrigin } from '@/lib/auth/origin';
+
 export function supabaseConfig() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
@@ -14,12 +16,10 @@ export const cookieOptions = {
   path: '/',
 };
 
-export function appOrigin() {
-  const value = process.env.APP_URL;
-  if (!value) throw new Error('APP_URL is required.');
-  const url = new URL(value);
-  if (url.protocol !== 'https:' && !(url.protocol === 'http:' && url.hostname === 'localhost')) {
-    throw new Error('APP_URL must use HTTPS (or localhost for development).');
-  }
-  return url.origin;
+export function appOrigin(request: Pick<Request, 'url'>) {
+  return trustedRequestOrigin(request.url, {
+    appUrl: process.env.APP_URL,
+    vercelUrl: process.env.VERCEL_URL,
+    allowLocalhost: process.env.NODE_ENV !== 'production',
+  });
 }

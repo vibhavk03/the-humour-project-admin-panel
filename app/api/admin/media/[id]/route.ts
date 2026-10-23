@@ -5,7 +5,8 @@ import { appOrigin } from '@/lib/supabase/config';
 import { validUserId } from '@/lib/users/types';
 const headers={'Cache-Control':'private, no-store'};
 async function mutate(request:Request, params:Promise<{id:string}>, deleting:boolean) {
-  if(request.headers.get('origin')!==appOrigin()) return NextResponse.json({error:'Invalid origin'},{status:403,headers});
+  const origin=appOrigin(request);
+  if(!origin||request.headers.get('origin')!==origin) return NextResponse.json({error:'Invalid origin'},{status:403,headers});
   const client=await createClient(); const access=await checkAdmin(client);
   if(access.status!=='allowed') return NextResponse.json({error:'Superadmin access required'},{status:access.status==='signed-out'?401:access.status==='denied'?403:503,headers});
   const {id}=await params;
