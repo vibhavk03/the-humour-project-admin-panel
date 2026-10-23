@@ -182,30 +182,19 @@ grants again after any schema or permission change.
 `sh scripts/test-superadmin.sh` runs against a disposable local PostgreSQL cluster;
 it never connects to Supabase. Override `ADMIN_PG_BIN` if PostgreSQL is elsewhere.
 
-## Superadmin toggle
+## Two-tier administrator roles
 
-Each profile detail page has a Superadmin access switch with an explicit
-confirmation showing the target name and account ID. Only an existing
-server-verified Google superadmin can call the same-origin PUT endpoint
-`/api/admin/users/[id]/superadmin`. The database RPC independently checks the
-current caller's role, requires a Google identity for a new admin, compares the
-expected current status to reject stale writes, and serializes changes with a
-table lock so simultaneous demotions cannot remove all admins. Direct profile
-column writes remain blocked. A self-demotion redirects out of the admin area.
+Apply `supabase/008-admin-hierarchy.sql` after migrations 001–007, **before deploying this app revision**. Applied with approval on October 23, 2026. Live checks confirmed one superadmin (Vibhav), zero Admins, blocked member self-promotion/direct role writes, disabled legacy superadmin changes, and working owner reads. Local PostgreSQL tests cover the Admin permission paths without granting a real account access. Older security descriptions below describe the original migrations; 008 replaces their superadmin-only read/media guards with checks for either role.
 
-Migration `005-admin-role-toggle.sql` adds this capability and a protected
-`admin_role_changes` audit table recording actor, target, before/after values
-and time. The UI has no access to edit or read the audit log. Installing the
-migration does not promote or demote any account.
+Vibhav's account (`c679baab-8190-4376-9f76-a0fb9bb25cb0`) is the sole Superadmin. A database constraint fixes this role to that account. No app endpoint can grant, remove, or transfer superadmin status; recovery requires trusted database-owner access. A trigger protects the owner profile from authenticated deletion or changes by other accounts. The owner can still edit their own ordinary profile fields in the main app.
 
-Applied with approval on October 23, 2026. Live verification rejected a nonadmin
-call and confirmed one existing superadmin, zero role-change audit records, and
-no anonymous execute privilege. No actual user was promoted or demoted for testing.
-The browser confirmation was checked without submitting a role change.
+Only the superadmin sees the Admin access switch on other profiles. The same-origin `PUT /api/admin/users/[id]/admin` calls `admin_set_admin`, which checks the caller again, requires Google identity for grants, serializes changes, rejects stale status, protects the owner target, and audits role changes. The old `/superadmin` endpoint and RPC reject all app role changes. Direct writes to either role column remain forbidden.
 
-`sh scripts/test-admin-role.sh` verifies grants/revokes in a disposable local
-database, including guest/member denial, last-admin protection, stale writes,
-missing Google identities, audit records, and denied direct profile writes.
+Admins can view Pulse, profiles, ratings and media, and edit/delete ordinary users' posts. They cannot manage roles or edit/delete the superadmin's posts. Protected posts show a read-only view; database checks also reject forged mutation requests. Profiles remain read-only throughout the control room; no account-deletion feature is added.
+
+Any existing superadmins besides Vibhav are converted to Admins, preserving their operational access. Migration 008 is now live. Apply the migration before deploying code that queries `is_admin`; missing schema fails closed.
+
+`npm run test:roles` starts a disposable local PostgreSQL instance and tests migration reruns, sole-owner constraints, conversion of existing roles, Google-only grants, stale changes, direct/legacy escalation denial, protected owner profile/posts, admin reads/media mutations, revocation and audit records. It never connects to the shared database.
 
 ## Media: read, update and delete
 

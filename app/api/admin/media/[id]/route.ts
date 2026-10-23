@@ -8,7 +8,7 @@ async function mutate(request:Request, params:Promise<{id:string}>, deleting:boo
   const origin=appOrigin(request);
   if(!origin||request.headers.get('origin')!==origin) return NextResponse.json({error:'Invalid origin'},{status:403,headers});
   const client=await createClient(); const access=await checkAdmin(client);
-  if(access.status!=='allowed') return NextResponse.json({error:'Superadmin access required'},{status:access.status==='signed-out'?401:access.status==='denied'?403:503,headers});
+  if(access.status!=='allowed') return NextResponse.json({error:'Admin access required'},{status:access.status==='signed-out'?401:access.status==='denied'?403:503,headers});
   const {id}=await params;
   if(!validUserId(id)) return NextResponse.json({error:'Invalid post ID'},{status:400,headers});
   let body;
@@ -18,7 +18,7 @@ async function mutate(request:Request, params:Promise<{id:string}>, deleting:boo
     ?await client.rpc('admin_media_delete',{target_id:id,expected_version:body.expectedVersion})
     :await client.rpc('admin_media_update',{target_id:id,expected_version:body.expectedVersion,new_caption:body.caption,new_context:body.context});
   if(error){const status=error.code==='42501'?403:error.code==='P0002'?404:error.code==='40001'?409:error.code==='22023'?400:503;
-    return NextResponse.json({error:['40001','22023'].includes(error.code)?error.message:status===404?'Post not found':status===403?'Superadmin access required':'Could not save this change. Please try again.'},{status,headers});}
+    return NextResponse.json({error:['40001','22023'].includes(error.code)?error.message:status===404?'Post not found':status===403?'You do not have permission to change this post.':'Could not save this change. Please try again.'},{status,headers});}
   if(!deleting) return NextResponse.json({post:data},{headers});
   const cleanup=data as {path:string;cleanupPending:boolean};
   if(cleanup.cleanupPending){

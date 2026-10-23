@@ -7,5 +7,5 @@ export async function GET() {
     status: access.status === 'signed-out' ? 401 : access.status === 'denied' ? 403 : 503,
     headers: { 'Cache-Control': 'private, no-store' },
   });
-  return NextResponse.json({ userId: access.user.id, isSuperadmin: true }, { headers: { 'Cache-Control': 'private, no-store' } });
+  return NextResponse.json({ userId: access.user.id, role: access.role, isSuperadmin: access.role === 'superadmin' }, { headers: { 'Cache-Control': 'private, no-store' } });
 }

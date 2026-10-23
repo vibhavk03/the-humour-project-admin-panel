@@ -9,6 +9,7 @@
     "start": "next start --port 3001",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
+    "test:roles": "sh scripts/test-admin-hierarchy.sh",
     "test:auth": "node --experimental-strip-types --test tests/auth.test.ts tests/origin.test.ts"
   },
   "dependencies": {

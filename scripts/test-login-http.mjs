@@ -8,6 +8,7 @@ const checks = [
   ['/users/c679baab-8190-4376-9f76-a0fb9bb25cb0', 'GET', 307],
   ['/api/admin/users/c679baab-8190-4376-9f76-a0fb9bb25cb0/image', 'GET', 401],
   ['/api/admin/users/c679baab-8190-4376-9f76-a0fb9bb25cb0/superadmin', 'PUT', 401],
+  ['/api/admin/users/c679baab-8190-4376-9f76-a0fb9bb25cb0/admin', 'PUT', 401],
   ['/media', 'GET', 307],
   ['/ratings', 'GET', 307],
   ['/ratings?direction=down', 'GET', 307],

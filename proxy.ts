@@ -28,7 +28,7 @@ export async function proxy(request: NextRequest) {
   const access = await checkAdmin(client);
   if (access.status !== 'allowed') {
     const denied = pathname.startsWith('/api/')
-      ? NextResponse.json({ error: access.status === 'signed-out' ? 'Authentication required' : access.status === 'denied' ? 'Superadmin access required' : 'Could not verify access' },
+      ? NextResponse.json({ error: access.status === 'signed-out' ? 'Authentication required' : access.status === 'denied' ? 'Admin access required' : 'Could not verify access' },
         { status: access.status === 'signed-out' ? 401 : access.status === 'denied' ? 403 : 503 })
       : NextResponse.redirect(new URL(access.status === 'denied' ? '/access-denied' : access.status === 'unavailable' ? '/login?error=verification' : '/login', request.url));
     response.cookies.getAll().forEach(cookie => denied.cookies.set(cookie));

@@ -4,7 +4,7 @@ import type { SupabaseClient, User } from '@supabase/supabase-js';
 import { checkAdmin } from '../lib/auth/check.ts';
 
 const googleUser = { id: 'verified-user', app_metadata: { provider: 'google' } } as User;
-function mockClient({ user = googleUser as User | null, authError = false, flag = true as unknown, profileError = false, throws = false } = {}) {
+function mockClient({ user = googleUser as User | null, authError = false, flag = true as unknown, adminFlag = false as unknown, profileError = false, throws = false } = {}) {
   let checkedId: string | undefined;
   let queriedProfile = false;
   const client = {
@@ -16,11 +16,11 @@ function mockClient({ user = googleUser as User | null, authError = false, flag 
       queriedProfile = true;
       assert.equal(table, 'profiles');
       return { select: (columns: string) => {
-        assert.equal(columns, 'is_superadmin');
+        assert.equal(columns, 'is_superadmin,is_admin');
         return { eq: (column: string, id: string) => {
           assert.equal(column, 'id');
           checkedId = id;
-          return { maybeSingle: async () => ({ data: flag === null ? null : { is_superadmin: flag }, error: profileError ? new Error('Database failure') : null }) };
+          return { maybeSingle: async () => ({ data: flag === null ? null : { is_superadmin: flag, is_admin: adminFlag }, error: profileError ? new Error('Database failure') : null }) };
         } };
       } };
     },
@@ -58,4 +58,13 @@ test('database errors and network failures fail closed', async () => {
 test('revoking the flag is observed on the next check', async () => {
   assert.equal((await checkAdmin(mockClient({ flag: true }).client)).status, 'allowed');
   assert.equal((await checkAdmin(mockClient({ flag: false }).client)).status, 'denied');
+});
+
+test('admins are admitted without owner powers and invalid admin flags fail closed', async () => {
+  const access = await checkAdmin(mockClient({flag:false,adminFlag:true}).client);
+  assert.equal(access.status,'allowed');
+  if (access.status === 'allowed') assert.equal(access.role,'admin');
+  const owner = await checkAdmin(mockClient().client);
+  if (owner.status === 'allowed') assert.equal(owner.role,'superadmin');
+  for (const adminFlag of ['true',1,null]) assert.equal((await checkAdmin(mockClient({flag:false,adminFlag}).client)).status,'denied');
 });

@@ -9,5 +9,5 @@ export async function requireAdmin() {
   if (access.status === 'signed-out') redirect('/login');
   if (access.status === 'denied') redirect('/access-denied');
   if (access.status !== 'allowed') redirect('/login?error=verification');
-  return { client, user: access.user };
+  return { client, user: access.user, role: access.role };
 }

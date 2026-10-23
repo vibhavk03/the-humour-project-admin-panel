@@ -1,6 +1,6 @@
 export type Profile = {
   id: string; first_name: string | null; last_name: string | null;
-  created_at: string; is_superadmin: boolean; has_avatar: boolean;
+  created_at: string; is_superadmin: boolean; is_admin: boolean; has_avatar: boolean;
   post_count: number; vote_count: number;
 };
 export type ProfileList = { profiles: Profile[]; total: number; page: number; pageSize: number };
