@@ -1,1 +1,6 @@
 - make theme similar to the app before we have
+- filtering based on roles
+
+
+not rated
+mention what the app does on the home feed

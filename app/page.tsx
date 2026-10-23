@@ -1,3 +1,4 @@
+import { AdminShell } from '@/app/components/admin-shell';
 import Link from 'next/link';
 import { requireAdmin } from '@/lib/auth/server';
 import { PulseChart } from '@/app/components/pulse-chart';
@@ -14,12 +15,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ d
   const votes = pulse ? pulse.totals.upvotes + pulse.totals.downvotes : 0;
   const recentVotes = recent ? recent.upvotes + recent.downvotes : 0;
   const approval = votes && pulse ? Math.round(pulse.totals.upvotes / votes * 100) : null;
-  return <div className="control-room">
-    <aside className="room-sidebar"><Link className="brand" href="/">the humour<br />project<span className="brand-dot">.</span></Link>
-      <span className="sidebar-label">CONTROL ROOM</span><nav aria-label="Admin navigation"><Link href="/" aria-current="page"><span aria-hidden="true">↗</span> The Pulse <span className="nav-dot" /></Link></nav>
-      <div className="sidebar-bottom"><span className="pill"><span /> ADMIN ACCESS</span><p>A little order.<br />A lot of humour.</p><span className="sidebar-foot">THP / EST. 2026</span></div>
-    </aside>
-    <div className="room-body"><header className="room-topbar"><span>THE HUMOUR PROJECT <span className="topbar-slash">/</span> OVERVIEW</span><div className="room-account"><span title={user.email}>{user.email}</span><form action="/auth/signout" method="post"><button type="submit">Sign out ↗</button></form></div></header>
+  return <AdminShell email={user.email} active="pulse">
       <main className="pulse-main"><div className="pulse-heading"><div><span className="eyebrow">YOUR COMMUNITY, AT A GLANCE</span><h1>The Pulse<span>.</span></h1><p>How’s the funny business doing?</p></div><form action="/" method="get"><input type="hidden" name="days" value={period} /><button className="refresh-link">↻ Refresh data</button></form></div>
         {!pulse || !recent ? <section className="pulse-error" role="alert"><h2>We couldn’t load the numbers.</h2><p>Statistics are temporarily unavailable. Try refreshing in a moment.</p><form action="/" method="get"><input type="hidden" name="days" value={period} /><button className="refresh-link">Try again ↗</button></form></section> : <>
           <div className="pulse-cards" aria-label="All-time community totals">
@@ -35,6 +31,5 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ d
           <footer className="pulse-footer"><span>SMALL NUMBERS. BIG PUNCHLINES.</span><span>Updated {new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: pulse.timezone, timeZoneName: 'short' }).format(new Date(pulse.generatedAt))}</span></footer>
         </>}
       </main>
-    </div>
-  </div>;
+  </AdminShell>;
 }
