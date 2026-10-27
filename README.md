@@ -269,3 +269,130 @@ and unchanged base-table privacy in a disposable local PostgreSQL cluster. Build
 lint, TypeScript and signed-out HTTP checks passed. Browser QA verified live totals
 of 88 upvotes / 3 downvotes / +85 net across 91 votes, pagination, direction/voter
 filters and empty results. No votes were changed during implementation or testing.
+
+## Admin-owned AI remixes
+
+On `/media/[id]`, open **Create a remix**. The prompt starts with the post's saved
+AI prompt (or a fallback when none was recorded), and context is editable for the
+new post. **Generate 3 captions** produces three distinct choices. Select one, review/edit it, then use
+**Publish as [your profile name]** to create a separate post in the shared feed.
+The feed uses the new post's `user_id` to display the admin's profile name. No
+source post fields, votes, authorship or generation metadata are updated.
+Admins may remix any image they can read, including protected superadmin posts;
+this does not grant permission to edit/delete the protected source.
+
+Apply `supabase/009-admin-remixes.sql` as database owner after migration 008 to
+activate the feature. It creates a private request-history table and narrowly
+scoped RPCs. Every operation rechecks Google identity and current admin access.
+Drafts are private to the requesting admin, including when another superadmin
+asks for them. No service-role key or broad table/storage grants are added.
+Use the existing server-only `OPENAI_API_KEY`; optional `OPENAI_CAPTION_MODEL`
+defaults to the main app's `gpt-4.1-mini`. Set these independently on deployment.
+
+Generation uses the Responses API with a base64 image input, `store: false` and a
+strict JSON schema with three captions ([vision documentation](https://developers.openai.com/api/docs/guides/images-vision),
+[structured outputs](https://developers.openai.com/api/docs/guides/structured-outputs)).
+Supported originals are PNG/JPEG/WebP/GIF up to 5 MB. Vision sees a resized still
+(first frame for GIFs); publishing copies the exact original bytes, retaining GIF
+animation. One generation has a 40-second provider deadline, at most 10 reserved
+requests per admin per 15 minutes, and one active request at a time. Interrupted
+requests expire after two minutes when the admin next reserves/checks a request.
+Failed requests count toward the limit. Provider keys, raw failures, image paths
+and image data are never returned to the composer.
+
+A generation UUID prevents duplicate paid calls on recovery; **Check last request**
+recovers the same result. Your last ten requests are available in the composer,
+including after a page reload. A publish UUID is also the new post ID, and a
+locked database transaction commits the new post and published history together.
+Repeat or concurrent publish calls return the same ID. The author is taken from
+`auth.uid()`, never a client-supplied author field. Captions must be 1–200
+characters. Changing prompt/context after preview requires regenerating or
+restoring the saved inputs; caption refinement is allowed.
+
+The copied image has its own admin-owned storage path; its SHA-256 must match the
+image used for generation. Deleting either published post does not break the
+other's image. Source IDs/names and original captions remain snapshotted in
+history after source deletion. The admin detail page shows remix attribution and
+a source link while it exists. The main app's existing feed shows the admin as
+author; a public “remixed from” badge would require a separate main-app UI change.
+If the source disappears before an independent copy is made, publishing fails
+without changing it. If storage upload succeeds but the database commit fails,
+the request retains the deterministic copy path for a safe retry. Such copies are
+not deleted by a background worker; abandoned failed-publish copies require
+owner cleanup. Ordinary caption-only previews do not upload an image.
+
+Validation: `npm run test:remix-ai` covers the real provider adapter with mocked
+HTTP, edited prompts, strict output, refusals, output limits, GIF conversion and
+quota failures. `npm run test:remixes` runs the actual migration and hierarchy
+suite against disposable local PostgreSQL: source preservation, admin ownership,
+Google-only access, draft isolation, revocation, copied-image requirement,
+idempotency, metadata/history, rate limits and survival after source deletion.
+It never connects to the live Supabase project. The HTTP smoke script also checks
+signed-out protection for the new endpoints. Publishing live content remains an
+explicit action in the composer; development checks do not publish live posts.
+
+Migration 009 was applied to the shared project with approval on October 27, 2026.
+Live checks confirmed RLS on remix history, no anonymous RPC execution, no direct
+history-table SELECT for authenticated users, and rejection of ordinary-member
+history access. A real edited-prompt request produced a preview with
+`gpt-4.1-mini-2025-04-14`; the draft was retained for review, without publishing.
+The source post's full-row digest stayed identical, and live totals stayed at
+36 posts and 91 votes. Local publishing tests cover the creation path without
+publishing test content to the shared feed.
+
+
+### Three-caption remix choices
+
+Apply `supabase/010-remix-caption-choices.sql` after 009. It preserves each set of
+three captions in `generated_captions`, so history and recovered previews retain
+all alternatives. Existing single-caption previews remain available with one
+option; generate again to receive three. The migration replaces the existing
+completion function without changing its signature, grants or authorization.
+The existing `caption_value` wire argument accepts a serialized JSON array for
+new clients and a plain caption for older clients during a rolling deployment.
+
+The composer offers a radio selection for each caption, then an editable selected
+caption field. Only the selected/edited caption is published; all AI alternatives
+remain in private generation history. Captions are validated server-side and in
+SQL for count, uniqueness, length and line breaks. The database suite verifies
+legacy preservation, history recovery and publication of the third option.
+
+Migration 010 was applied on October 27, 2026. A live generation returned three
+captions; selecting option 3 populated the selected-caption editor correctly.
+Live history retained the two older one-caption results and the new three-caption
+result. The source post's row digest remained unchanged and no post was published
+during this check. Build, lint, TypeScript, AI adapter tests, auth tests and the
+expanded local database regression suite passed.
+
+### Request more captions, up to fifteen
+
+Apply `supabase/011-remix-caption-sessions.sql` after 010. New batches join the
+same private remix session, preserving earlier captions and their originating
+request IDs/models. The composer appends three choices at a time, shows an
+`N / 15` counter, and stops at fifteen. Changing prompt/context starts a new set.
+Existing one-caption previews remain readable and start a new three-caption set
+when generating again. Existing three-caption previews can be continued.
+
+The database serializes reservations/completions per admin, checks the session's
+saved prompt/context and image hash, and rejects requests beyond fifteen. Failed
+requests keep the previous choices, consume no caption slots, and still count
+against the existing ten-attempts-per-fifteen-minutes rate limit. Retries recover
+the same batch without another AI call. Previously offered captions are sent to
+the model as source material to avoid; repeats are rejected by both the provider
+adapter and database. All options are restored from saved session history.
+
+The chosen option's originating request supplies the post ID, copied image path,
+model and prompt metadata. Publishing any batch closes the whole session; retries
+from a different batch return that same published post instead of creating a
+second one. The selected caption and any manual edits stay in the editor while
+more captions are generated. The expanded local database suite verifies 3→6→9→12→15,
+the blocked sixth batch, repeated-caption/image-change rejection, recovery,
+history, and publishing option 15 with its original model and a single post.
+
+Migration 011 was applied on October 27, 2026. Live browser checks continued an
+existing three-caption preview to six choices, preserving option 3's selection
+and a manual caption edit. Saved history retained all six choices. The source
+post's full-row digest remained identical, history RLS stayed enabled, and the
+anonymous role cannot execute batch reservations. No live post was published by
+these checks. Build, lint, TypeScript, six AI adapter tests, fourteen auth tests,
+HTTP protection checks and the expanded isolated PostgreSQL suite passed.

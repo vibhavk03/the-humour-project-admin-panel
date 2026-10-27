@@ -10,7 +10,9 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test:roles": "sh scripts/test-admin-hierarchy.sh",
-    "test:auth": "node --experimental-strip-types --test tests/auth.test.ts tests/origin.test.ts"
+    "test:auth": "node --experimental-strip-types --test tests/auth.test.ts tests/origin.test.ts",
+    "test:remixes": "sh scripts/test-remixes.sh",
+    "test:remix-ai": "node --conditions=react-server --experimental-strip-types --test tests/remix.test.ts"
   },
   "dependencies": {
     "@supabase/ssr": "0.12.7",
@@ -18,7 +20,8 @@
     "next": "16.4.2",
     "react": "19.2.8",
     "react-dom": "19.2.8",
-    "server-only": "0.0.1"
+    "server-only": "0.0.1",
+    "sharp": "^0.35.5"
   },
   "devDependencies": {
     "@types/node": "^20",
