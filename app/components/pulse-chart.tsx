@@ -2,9 +2,9 @@
 import { useState } from 'react';
 import type { PulseDay } from '@/lib/pulse/types';
 const series = [
-  { key: 'users', label: 'New users', color: '#728a36' },
-  { key: 'memes', label: 'Published memes', color: '#6f93b3' },
-  { key: 'votes', label: 'Votes', color: '#a28bb5' },
+  { key: 'users', label: 'New users', color: '#a7b2ba' },
+  { key: 'memes', label: 'Published memes', color: '#74866c' },
+  { key: 'votes', label: 'Votes', color: '#c9a777' },
 ] as const;
 type Series = typeof series[number]['key'];
 const dayLabel = (date: string) => new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' }).format(new Date(`${date}T12:00:00Z`));
