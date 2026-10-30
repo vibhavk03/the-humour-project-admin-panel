@@ -89,3 +89,4 @@ do $$ begin
  if (select count(*) from public.admin_role_changes where role_kind='admin')<>2 then raise exception 'Role audit missing';end if;
  if not exists(select 1 from public.profiles where is_superadmin and first_name='Owner') then raise exception 'Owner damaged';end if;
 end $$;
+\ir test-pulse-range.sql

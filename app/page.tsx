@@ -1,31 +1,39 @@
 import { AdminShell } from '@/app/components/admin-shell';
 import Link from 'next/link';
 import { requireAdmin } from '@/lib/auth/server';
+import { PulseRangePicker } from '@/app/components/pulse-range-picker';
 import { PulseChart } from '@/app/components/pulse-chart';
-import { pulsePeriod, summarizeDays, type Pulse } from '@/lib/pulse/types';
+import { pulseRange, summarizeDays, type Pulse, type PulseSearch } from '@/lib/pulse/types';
 
 const number = (value: number) => new Intl.NumberFormat('en-US').format(value);
 
-export default async function Home({ searchParams }: { searchParams: Promise<{ days?: string | string[] }> }) {
+export default async function Home({ searchParams }: { searchParams: Promise<PulseSearch> }) {
   const { client, user } = await requireAdmin();
-  const period = pulsePeriod((await searchParams).days);
-  const { data, error } = await client.rpc('admin_pulse', { period_days: period });
+  const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+  const range = pulseRange(await searchParams, today);
+  const { period } = range;
+  const { data, error } = range.custom
+    ? await client.rpc('admin_pulse_range', { start_date: range.start, end_date: range.end })
+    : await client.rpc('admin_pulse', { period_days: period });
+  const periodText = range.custom ? 'in the selected date range' : `in the last ${period} days`;
+  const rangeLabel = (date: string) => new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' }).format(new Date(`${date}T12:00:00Z`));
+  const refreshFields = range.custom ? <><input type="hidden" name="start" value={range.start} /><input type="hidden" name="end" value={range.end} /></> : <input type="hidden" name="days" value={period} />;
   const pulse = !error && data ? data as Pulse : null;
   const recent = pulse ? summarizeDays(pulse.days) : null;
   const votes = pulse ? pulse.totals.upvotes + pulse.totals.downvotes : 0;
   const recentVotes = recent ? recent.upvotes + recent.downvotes : 0;
   const approval = votes && pulse ? Math.round(pulse.totals.upvotes / votes * 100) : null;
   return <AdminShell email={user.email} active="pulse">
-      <main className="pulse-main"><div className="pulse-heading"><div><span className="eyebrow">YOUR COMMUNITY, AT A GLANCE</span><h1>The Pulse<span>.</span></h1><p>Community activity, content and engagement.</p></div><form action="/" method="get"><input type="hidden" name="days" value={period} /><button className="refresh-link">↻ Refresh data</button></form></div>
-        {!pulse || !recent ? <section className="pulse-error" role="alert"><h2>We couldn’t load the numbers.</h2><p>Statistics are temporarily unavailable. Try refreshing in a moment.</p><form action="/" method="get"><input type="hidden" name="days" value={period} /><button className="refresh-link">Try again ↗</button></form></section> : <>
+      <main className="pulse-main"><div className="pulse-heading"><div><span className="eyebrow">YOUR COMMUNITY, AT A GLANCE</span><h1>The Pulse<span>.</span></h1><p>Community activity, content and engagement.</p></div><form action="/" method="get">{refreshFields}<button className="refresh-link">↻ Refresh data</button></form></div>
+        {!pulse || !recent ? <section className="pulse-error" role="alert"><h2>We couldn’t load the numbers.</h2><p>Statistics are temporarily unavailable. Try refreshing in a moment.</p><form action="/" method="get">{refreshFields}<button className="refresh-link">Try again ↗</button></form></section> : <>
           <div className="pulse-cards" aria-label="All-time community totals">
-            <section className="metric-card"><div className="metric-label">TOTAL USERS<span aria-hidden="true">◎</span></div><strong>{number(pulse.totals.users)}</strong><p><b>+{number(recent.users)}</b> in the last {period} days</p><span className="metric-note">Profiles in the community</span></section>
-            <section className="metric-card featured"><div className="metric-label">PUBLISHED MEMES<span aria-hidden="true">▧</span></div><strong>{number(pulse.totals.memes)}</strong><p><b>+{number(recent.memes)}</b> in the last {period} days</p><span className="metric-note">Punchlines out in the world</span></section>
-            <section className="metric-card"><div className="metric-label">TOTAL VOTES<span aria-hidden="true">⇅</span></div><strong>{number(votes)}</strong><p><b>+{number(recentVotes)}</b> in the last {period} days</p><span className="metric-note">{number(pulse.totals.upvotes)} up · {number(pulse.totals.downvotes)} down</span></section>
+            <section className="metric-card"><div className="metric-label">TOTAL USERS<span aria-hidden="true">◎</span></div><strong>{number(pulse.totals.users)}</strong><p><b>+{number(recent.users)}</b> {periodText}</p><span className="metric-note">Profiles in the community</span></section>
+            <section className="metric-card featured"><div className="metric-label">PUBLISHED MEMES<span aria-hidden="true">▧</span></div><strong>{number(pulse.totals.memes)}</strong><p><b>+{number(recent.memes)}</b> {periodText}</p><span className="metric-note">Punchlines out in the world</span></section>
+            <section className="metric-card"><div className="metric-label">TOTAL VOTES<span aria-hidden="true">⇅</span></div><strong>{number(votes)}</strong><p><b>+{number(recentVotes)}</b> {periodText}</p><span className="metric-note">{number(pulse.totals.upvotes)} up · {number(pulse.totals.downvotes)} down</span></section>
           </div>
-          <div className="dashboard-grid"><section className="activity-panel" aria-labelledby="activity-title"><div className="activity-header"><div><span className="eyebrow">THE DAILY DOSE</span><h2 id="activity-title">Activity overview</h2><p>New users, published memes, and votes over time.</p></div><nav className="period-picker" aria-label="Activity date range">{[7, 30, 90].map(days => <Link key={days} href={`/?days=${days}`} aria-current={period === days ? 'page' : undefined} scroll={false}>{days} days</Link>)}</nav></div>
-            <div className="period-summary"><strong>{number(recent.users + recent.memes + recentVotes)}</strong><span>records created in the last {period} days<br /><small>Including today · America/New_York</small></span></div>
-            <PulseChart key={period} days={pulse.days} />
+          <div className="dashboard-grid"><section className="activity-panel" aria-labelledby="activity-title"><div className="activity-header"><div><span className="eyebrow">THE DAILY DOSE</span><h2 id="activity-title">Activity overview</h2><p>New users, published memes, and votes over time.</p></div><PulseRangePicker period={period} custom={range.custom} start={range.start} end={range.end} today={today} /></div>
+            {range.error && <p className="range-error" role="alert">{range.error}</p>}<div className="period-summary"><strong>{number(recent.users + recent.memes + recentVotes)}</strong><span>records created {periodText}<br /><small>{range.custom ? `${rangeLabel(range.start)} – ${rangeLabel(range.end)} · America/New_York` : 'Including today · America/New_York'}</small></span></div>
+            <PulseChart key={range.custom ? `${range.start}/${range.end}` : period} days={pulse.days} />
           </section>
           <aside className="engagement-panel" aria-labelledby="engagement-title">
             <div className="insight-heading"><h2 id="engagement-title">Community sentiment</h2><span className="pill">ALL TIME</span></div>

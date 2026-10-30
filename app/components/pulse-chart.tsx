@@ -20,7 +20,7 @@ export function PulseChart({ days }: { days: PulseDay[] }) {
     <div className="chart-legend" aria-label="Chart series">{series.map(item => <button key={item.key} type="button" aria-pressed={visible[item.key]} onClick={() => setVisible(current => ({ ...current, [item.key]: !current[item.key] }))}><span style={{ background: item.color }} />{item.label}</button>)}</div>
     {!activity && <p className="chart-notice">A quiet spell. No activity in this date range yet.</p>}
     {active.length === 0 && <p className="chart-notice">Select a series above to show activity.</p>}
-    <div className="chart-scroll"><div className="pulse-chart" style={{ minWidth: days.length > 30 ? 900 : 570 }}>
+    <div className="chart-scroll"><div className="pulse-chart" style={{ minWidth: days.length > 30 ? Math.max(900, days.length * 12) : 570 }}>
       <div className="chart-scale" aria-hidden="true"><span>{max}</span><span>{max / 2}</span><span>0</span></div>
       <div className="chart-plot" role="group" aria-label="Daily activity. Select a bar for details.">
         <div className="chart-grid" aria-hidden="true"><i /><i /><i /></div>

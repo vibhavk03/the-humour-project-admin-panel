@@ -639,3 +639,15 @@ input::placeholder, textarea::placeholder { color: #92988a; }
 .remix-progress progress::-webkit-progress-value { background: #74866c; border-radius: 99px; }
 .remix-progress progress::-moz-progress-bar { background: #74866c; border-radius: 99px; }
 .remix-composer .editor-actions { flex-wrap: wrap; }
+
+.activity-range-controls { display: flex; flex-direction: column; align-items: flex-end; gap: 12px; }
+.activity-range-controls .period-picker { flex-wrap: wrap; }
+.period-picker button { border: 0; background: transparent; border-radius: 99px; padding: 8px 10px; font: inherit; font-size: 9px; color: var(--muted); cursor: pointer; }
+.period-picker button[aria-expanded="true"], .period-picker button[aria-pressed="true"] { background: var(--accent); color: #fffefa; }
+.custom-activity-range { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px; padding: 14px; border: 1px solid var(--line); border-radius: 16px; background: #f8f8f3; max-width: 360px; }
+.custom-activity-range label { display: flex; flex: 1; flex-direction: column; gap: 6px; font-size: 10px; color: var(--muted); }
+.custom-activity-range input { min-width: 0; width: 100%; border: 1px solid var(--line); border-radius: 8px; padding: 8px; background: #fffefa; font: inherit; font-size: 11px; color: var(--ink); }
+.range-apply { border: 0; border-radius: 99px; background: var(--accent); color: #fffefa; padding: 10px 14px; font-size: 10px; cursor: pointer; }
+.custom-activity-range small { flex-basis: 100%; color: var(--muted); font-size: 9px; }
+.range-error { color: #9b3c30; font-size: 12px; line-height: 1.5; }
+@media(max-width:760px) { .activity-range-controls { align-items: flex-start; width: 100%; } .custom-activity-range { max-width: 100%; } }

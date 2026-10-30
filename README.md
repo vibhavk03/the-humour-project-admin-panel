@@ -396,3 +396,15 @@ post's full-row digest remained identical, history RLS stayed enabled, and the
 anonymous role cannot execute batch reservations. No live post was published by
 these checks. Build, lint, TypeScript, six AI adapter tests, fourteen auth tests,
 HTTP protection checks and the expanded isolated PostgreSQL suite passed.
+
+
+## Custom activity dates
+
+Activity overview supports 7, 30, and 90-day presets plus Custom start/end dates.
+Ranges include both dates in America/New_York and are limited to 366 days ending
+on or before today. The chart and recent metric counts use the selected range;
+all-time totals and sentiment remain all-time. Selections survive refresh in the URL.
+Apply `supabase/012-pulse-date-range.sql` after migration 008 to install the
+admin-only aggregate RPC. The migration is installed in the shared project.
+`npm run test:roles` covers inclusive boundaries across daylight-saving time,
+historical zero-filled days, range limits, invalid inputs, and access checks.
